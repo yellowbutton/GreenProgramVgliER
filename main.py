@@ -1,6 +1,8 @@
-import sys,json,os,search,searchweb,time,Levenshtein
+print("加载包及数据")
+
+import sys,json,os,search,searchweb,Levenshtein
 from icecream import ic
-from xpinyin import Pinyin
+from pypinyin import lazy_pinyin
 
 def similar(s1,s2):
     return (Levenshtein.ratio(s1, s2))/1
@@ -9,6 +11,7 @@ def get1(l):
 cmd=sys.argv
 
 init={
+    "sets":{"deepofsearch":1,"maxsearch":10},
     "prms":[{"path":"/"+cmd[0],"search":{"name":"greenvgliER","en":"a green program clean uper","zh":"绿色软件整理"}}]
 }
 
@@ -26,19 +29,26 @@ except:
 finally:
     pass
 
+
 f=open("data.json","r",encoding="utf-8")
 data=json.loads(f.read())
 f.close()
+print("└ 完成")
 
 def findafile(dir,next=0):
     print("搜索")
     name=search.searchmainp(dir.replace("\\", "/"))
     if name==None:
-        if next==1:
+        if next==data["sets"]["deepofsearch"]:
             print("└ 错误-没有找到可执行文件")
             return
         else:
             print("└ 错误-向下查找")
+            try:
+                os.listdir(dir)
+            except PermissionError:
+                print("错误-权限不足")
+                return
             ll=os.listdir(dir)
             if len(ll)==0:
                 print("└ 错误-没有找到文件夹")
@@ -46,14 +56,15 @@ def findafile(dir,next=0):
             else:
                 for z in ll:
                     if not os.path.isfile(os.path.join(dir, z)):
-                        findafile(os.path.join(dir, z),next=1)
-            
+                        findafile(os.path.join(dir, z),next=next+1)
+                return
+    # ic(name)
     prmname=dir.replace("\\", "/").split("/")[-1]
     fullpath=dir.replace("\\", "/")+"/"+name
     webs=searchweb.searchweb(prmname)
     if webs==None:
-        en=""
-        zh=""
+        en=prmname
+        zh=searchweb.translate(prmname)
     else:
         en=webs[0]
         zh=webs[1]
@@ -118,8 +129,12 @@ else:
                     sls+=0.3
                 elif prmname in i["search"]["zh"]:
                     sls+=0.6
-                elif prmname in Pinyin().get_pinyin(i["search"]["zh"],""):
-                    sls+=0.5
+                else:
+                    pinyind=""
+                    for k in lazy_pinyin(i["search"]["zh"]):
+                        pinyind+=k
+                    if prmname in pinyind:
+                        sls+=0.5
                 if sls<=0.2:
                     pass
                 else:
@@ -131,8 +146,8 @@ else:
             else:
                 print("未找到")
                 sys.exit(0)
-            for i in range(0,min(10,len(maylist))):
-                print(str(i)+". "+str(maylist[i][0])+"\t"+str(maylist[i][2])+"\t\t"+str(maylist[i][3]))#,maylist[i][1])
+            for i in range(0,min(data["sets"]["deepofsearch"],len(maylist))):
+                print(str(i)+". "+str(maylist[i][0])+"\t"+str(maylist[i][2])+"\t\t"+str(maylist[i][4]))#,maylist[i][1])
             if "y" in cmd:
                 os.startfile(maylist[0][4])
                 sys.exit(0)
@@ -161,6 +176,11 @@ else:
             dir_path=cmd[2]
             dir_path=dir_path.replace("\\", "/")
             res = []
+            try:
+                os.listdir(dir_path)
+            except PermissionError:
+                print("错误-权限不足")
+                sys.exit(0)
             for path in os.listdir(dir_path):
                 # check if current path is a file
                 if not os.path.isfile(os.path.join(dir_path, path)):
@@ -169,3 +189,5 @@ else:
                 findafile(dir_path+"/"+i)
             # findafile(cmd[2])
             sys.exit(0)
+    elif cmd[1]=="list":
+        ic(data)
