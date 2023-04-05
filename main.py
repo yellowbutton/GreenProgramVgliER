@@ -1,6 +1,6 @@
 import sys,json,os,search,searchweb,time,Levenshtein
 from icecream import ic
-
+from xpinyin import Pinyin
 
 def similar(s1,s2):
     return (Levenshtein.ratio(s1, s2))/1
@@ -30,6 +30,43 @@ f=open("data.json","r",encoding="utf-8")
 data=json.loads(f.read())
 f.close()
 
+def findafile(dir,next=0):
+    print("搜索")
+    name=search.searchmainp(dir.replace("\\", "/"))
+    if name==None:
+        if next==1:
+            print("└ 错误-没有找到可执行文件")
+            return
+        else:
+            print("└ 错误-向下查找")
+            ll=os.listdir(dir)
+            if len(ll)==0:
+                print("└ 错误-没有找到文件夹")
+                return
+            else:
+                for z in ll:
+                    if not os.path.isfile(os.path.join(dir, z)):
+                        findafile(os.path.join(dir, z),next=1)
+            
+    prmname=dir.replace("\\", "/").split("/")[-1]
+    fullpath=dir.replace("\\", "/")+"/"+name
+    webs=searchweb.searchweb(prmname)
+    if webs==None:
+        en=""
+        zh=""
+    else:
+        en=webs[0]
+        zh=webs[1]
+    print("└ 完成\n写入")
+    if {"path":fullpath,"search":{"name":prmname,"en":en,"zh":zh}} not in data["prms"]:
+        data["prms"].append({"path":fullpath,"search":{"name":prmname,"en":en,"zh":zh}})
+        f=open("data.json","w",encoding="utf-8")
+        f.write(json.dumps(data))
+        f.close()
+        print("└ 完成")
+    else:
+        print("└ 错误-重复录入")
+
 # print(len(cmd))
 if len(cmd)==1:
     pass
@@ -48,7 +85,7 @@ else:
         f.write(json.dumps(init))
         f.close()
         print("└ 完成")
-    if cmd[1]=="cleandata":
+    elif cmd[1]=="cleandata":
         if "y" in cmd:
             pass
         else:
@@ -60,28 +97,14 @@ else:
         print("清除数据")
         os.remove("data.json")
         print("└ 完成")
-    if cmd[1]=="find1":
+    elif cmd[1]=="find1":
         if len(cmd)==2:
             print("错误-无路径提供")
             sys.exit(0)
         else:
-            print("搜索")
-            name=search.searchmainp(cmd[2].replace("\\", "/"))
-            prmname=cmd[2].replace("\\", "/").split("/")[-1]
-            fullpath=cmd[2].replace("\\", "/")+"/"+name
-            webs=searchweb.searchweb(prmname)
-            en=webs[0]
-            zh=webs[1]
-            print("└ 完成\n写入")
-            if {"path":fullpath,"search":{"name":prmname,"en":en,"zh":zh}} not in data["prms"]:
-                data["prms"].append({"path":fullpath,"search":{"name":prmname,"en":en,"zh":zh}})
-                f=open("data.json","w",encoding="utf-8")
-                f.write(json.dumps(data))
-                f.close()
-                print("└ 完成")
-            else:
-                print("└ 错误-重复录入")
-    if cmd[1]=="s":
+            findafile(cmd[2])
+            sys.exit(0)
+    elif cmd[1]=="s":
         if len(cmd)==2:
             print("错误-无名称提供")
             sys.exit(0)
@@ -95,6 +118,8 @@ else:
                     sls+=0.3
                 elif prmname in i["search"]["zh"]:
                     sls+=0.6
+                elif prmname in Pinyin().get_pinyin(i["search"]["zh"],""):
+                    sls+=0.5
                 if sls<=0.2:
                     pass
                 else:
@@ -128,3 +153,19 @@ else:
                         else:
                             os.startfile(maylist[int(asr)][4])
                             sys.exit(0)
+    elif cmd[1]=="findf":
+        if len(cmd)==2:
+            print("错误-无路径提供")
+            sys.exit(0)
+        else:
+            dir_path=cmd[2]
+            dir_path=dir_path.replace("\\", "/")
+            res = []
+            for path in os.listdir(dir_path):
+                # check if current path is a file
+                if not os.path.isfile(os.path.join(dir_path, path)):
+                    res.append(path)
+            for i in res:
+                findafile(dir_path+"/"+i)
+            # findafile(cmd[2])
+            sys.exit(0)
