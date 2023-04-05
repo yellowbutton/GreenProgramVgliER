@@ -5,6 +5,11 @@ from icecream import ic
 def similar(s1,s2):
     return (Levenshtein.ratio(s1, s2))/1
 def searchmainp(path):
+    try:
+        os.listdir(path)
+    except:
+        return None
+    
     waitfslect=[]
     path=path.replace("\\", "/")
     name=path.split("/")
