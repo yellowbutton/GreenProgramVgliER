@@ -43,7 +43,7 @@ def translate(i):
 
 def searchweb(name):
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36 Edg/94.0.992.31'}
-    url = 'https://cn.bing.com/search?q={}'.format("what is "+name)
+    url = 'https://cn.bing.com/search?q={}'.format("what is software: "+name)
     res = requests.get(url,headers=headers)
     r = res.text
     soup=BeautifulSoup(r,'html.parser')
@@ -52,7 +52,7 @@ def searchweb(name):
     jpgo+=soup.find_all("div",class_="b_focusTextLarge")
     if len(jpgo)==0:
         return None
-    return translate(jpgo[0].string)
+    return [jpgo[0].string,translate(jpgo[0].string)]
 
 # print(searchweb("fiddler"))
 
